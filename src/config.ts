@@ -4,7 +4,8 @@ global.config = {
 		"https://01-cache.myqwertycoin.com/"
 	],
 	nodeList: [
-		"http://148.251.115.233:8197/"
+		"http://148.251.115.233:8197/",
+		"http://148.251.115.235:8197/"
 	],
 	electionApiUrl: "https://voting.qwertycoin.org/api",
 	websiteApiUrl: "https://www.qwertycoin.org/wp-json",

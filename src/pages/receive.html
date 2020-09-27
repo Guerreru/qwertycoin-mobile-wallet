@@ -37,7 +37,7 @@
 						<input type="text" v-model="paymentId" maxlength="8"/>
 					</div>-->
 					<div class="actions" >
-						<button class="btn primary" @click="generateQrCode()" >{{ $t("receivePage.receiveBlock.qrCode.updateButton") }}</button>
+						<button class="update-btn btn primary" @click="generateQrCode()" >{{ $t("receivePage.receiveBlock.qrCode.updateButton") }}</button>
 					</div>
 				</div>
 			</div>
@@ -59,12 +59,8 @@
 			<div class="body" >
 				<div class="header-title" >Nfc</div>
 				<div class="content" >
-					<div>
-						<button @click="shareWithNfc()" class="btn primary">Share by NFC</button>
-					</div>
-					<div>
-						<button @click="writeOnNfc()" class="btn" >Write on a Nfc Tag</button>
-					</div>
+					<button @click="shareWithNfc()" class="nfcShare btn primary">Share by NFC</button>
+					<button @click="writeOnNfc()" class="btn" >Write on a Nfc Tag</button>
 				</div>
 			</div>
 		</div>

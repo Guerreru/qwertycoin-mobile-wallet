@@ -30,11 +30,15 @@ import {Functions} from "../model/Functions";
 import {BlockchainExplorer} from "../model/blockchain/BlockchainExplorer";
 import {Cn} from "../model/Cn";
 import {WalletWatchdog} from "../model/WalletWatchdog";
+import {VueFilterFiat, VueFilterSatoshis} from "../filters/Filters";
 
 let wallet: Wallet = DependencyInjectorInstance().getInstance(Wallet.name, 'default', false);
 let blockchainExplorer: BlockchainExplorer = BlockchainExplorerProvider.getInstance();
 
 AppState.enableLeftMenu();
+
+@VueRequireFilter('satoshis', VueFilterSatoshis)
+@VueRequireFilter('fiat', VueFilterFiat)
 
 class SendView extends DestructableView {
 	@VueVar('') destinationAddressUser!: string;
@@ -67,6 +71,9 @@ class SendView extends DestructableView {
 	@VueVar('btc') countrycurrency !: string;
 	@VueVar(0) currentScanBlock!: number;
 	@VueVar(0) blockchainHeight!: number;
+
+	@VueVar(0) geckoCurrentPrice !: any;
+	@VueVar(0) currency !: string;
 
 	qrReader: QRReader | null = null;
 	redirectUrlAfterSend: string | null = null;
@@ -102,6 +109,9 @@ class SendView extends DestructableView {
 		}, 30 * 1000);
 		this.refresh();
 		this.refreshPrice();
+		Currency.getCurrency().then((currency: string) => {
+			this.currency = currency;
+		});
 	}
 
 	refresh() {
@@ -122,19 +132,20 @@ class SendView extends DestructableView {
 
 	refreshPrice() {
 		let self = this;
-
-		Currency.getCurrency().then((currency : string) => {
-			if(currency == null)
-				currency = 'btc';
-			this.countrycurrency = currency;
+		Currency.getCurrency().then((currency: string) => {
+			this.currency = currency;
 		});
+		self.getCoin('qwertycoin').then((json: any) => {
+			let temp = json;
+			self.geckoCurrentPrice = temp;
+		});
+	}
 
-		let randInt = Functions.randInt();
-		$.ajax({
-			url: config.apiUrl[randInt] + 'price.php?currency=' + self.countrycurrency
-		}).done(function (data: any) {
-			self.walletAmountCurrency = wallet.amount * data.value;
-		})
+	// grab coin info from coingecko
+	getCoin(coin: string): Promise<any> {
+		console.log(`Starting to fetch ${coin} market_data.`)
+		return fetch(`https://api.coingecko.com/api/v3/coins/${coin}`)
+			.then(res => res.json())
 	}
 
 	reset() {

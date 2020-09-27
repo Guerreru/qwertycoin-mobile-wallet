@@ -36,13 +36,6 @@
 							<option value="vn">(Vietnam) Việt Nam</option>
 						</select>
 					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="panel">
-			<div class="body" >
-				<div class="content" >
 					<div class="field">
 						<label>{{ $t("settingsPage.settingsBlock.currency.label") }}</label>
 						<select v-model="countrycurrency">
@@ -63,6 +56,7 @@
 							<option value="krw">KRW</option>
 							<option value="rub">RUB</option>
 							<option value="vnd">VND</option>
+							<option value="czk">CZK</option>
 						</select>
 					</div>
 				</div>
@@ -81,12 +75,6 @@
 							<option value="10">{{ $t("settingsPage.settingsBlock.speed.slow") }}</option>
 						</select>
 					</div>
-					<!--
-					<div class="field checkbox toggle">
-						<input type="checkbox" name="public" v-model="checkMinerTx">
-						<label>{{ $t("settingsPage.settingsBlock.readMinerTx.label") }}</label>
-					</div>
-					-->
 				</div>
 			</div>
 		</div>
@@ -134,8 +122,6 @@
 				</div>
 			</div>
 		</div>
-
-
 
 		<div class="panel inline" v-if="nativeVersionCode !== 0">
 			<div class="body">

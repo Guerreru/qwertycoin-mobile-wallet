@@ -38,10 +38,10 @@
 				<div class="header-title" >{{ $t("exportPage.exportBlock.title") }}</div>
 				<div class="content tc" >
 					<div class="tab" >
-						<button class="btn" @click="getPrivateKeys()" >{{ $t("exportPage.exportBlock.privateKeysButton") }}</button>
+						<button class="btn btn-danger" @click="getPrivateKeys()" >{{ $t("exportPage.exportBlock.privateKeysButton") }}</button>
 					</div>
 					<div class="tab" >
-						<button class="btn" @click="getMnemonicPhrase()" >{{ $t("exportPage.exportBlock.mnemonicKeysButton") }}</button>
+						<button class="btn btn-danger" @click="getMnemonicPhrase()" >{{ $t("exportPage.exportBlock.mnemonicKeysButton") }}</button>
 					</div>
 					<div class="tab" v-if="!nativePlatform" >
 						<button class="btn" @click="fileExport()" >{{ $t("exportPage.exportBlock.fileButton") }}</button>

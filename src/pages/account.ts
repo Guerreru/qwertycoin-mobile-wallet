@@ -150,11 +150,12 @@ class AccountView extends DestructableView {
 
 	refreshPrice() {
 		let self = this;
+		Currency.getCurrency().then((currency: string) => {
+			this.currency = currency;
+		});
 		self.getCoin('qwertycoin').then((json: any) => {
 			let temp = json;
 			self.geckoCurrentPrice = temp;
-			console.log(`Current price BTC: ${self.geckoCurrentPrice.market_data.current_price.btc}`)
-			console.log(`Current price EUR: ${self.geckoCurrentPrice.market_data.current_price.eur}`)
 		});
 	}
 

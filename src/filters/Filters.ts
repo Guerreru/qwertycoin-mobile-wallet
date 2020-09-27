@@ -39,6 +39,15 @@ export function VueFilterFiat(value: number, currency: string) {
     if (currency == 'sek') {
         return 'kr ' + value.toFixed(2);
     }
+    if (currency == 'czk') {
+        return 'CZK ' + value.toFixed(2);
+    }
+    if (currency == 'eth') {
+        return 'Ξ ' + value.toFixed(2);
+    }
+    if (currency == 'ltc') {
+        return 'Ł ' + value.toFixed(2);
+    }
 }
 
 export function VueFilterHashrate(hashrate: number) {
