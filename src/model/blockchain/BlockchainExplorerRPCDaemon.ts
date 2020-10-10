@@ -189,6 +189,7 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
                         tx.hash = rawTx.tx_hash;
                         if (rawTx.output_indices.length > 0)
                             tx.global_index_start = rawTx.output_indices[0];
+                        tx.output_indices = rawTx.output_indices;
 
                         formatted.push(tx);
                     }
@@ -215,7 +216,7 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
                     }
                 }
                 return formatted;
-        });
+            });
     }
 
     existingOuts: any[] = [];
@@ -277,9 +278,10 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
 
                     for (let output_idx_in_tx = 0; output_idx_in_tx < tx.vout.length; ++output_idx_in_tx) {
                         let rct = null;
-                        let globalIndex = output_idx_in_tx;
-                        if (typeof tx.global_index_start !== 'undefined')
-                            globalIndex += tx.global_index_start;
+                        let globalIndex: number = 0;
+                        if (typeof tx.global_index_start !== 'undefined' && typeof tx.output_indices !== 'undefined') {
+                            globalIndex = tx.output_indices[output_idx_in_tx];
+                        }
 
                         if (tx.vout[output_idx_in_tx].amount !== 0) {//check if miner tx
                             rct = CnTransactions.zeroCommit(CnUtils.d2s(tx.vout[output_idx_in_tx].amount));

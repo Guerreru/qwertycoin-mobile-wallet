@@ -29,6 +29,7 @@ export type RawDaemon_Transaction = {
     version: number,
     ctsig_prunable: any,
     global_index_start?: number,
+    output_indices: number[],
     height?: number,
     ts?: number,//timestamp
     hash?: string,

@@ -1,16 +1,34 @@
-/*
- * Copyright (c) 2018, Gnock
- * Copyright (c) 2018, The Masari Project
+/**
+ *	   Copyright (c) 2018, Gnock
+ *     Copyright (c) 2018-2020, ExploShot
+ *     Copyright (c) 2018-2020, The Qwertycoin Project
+ *     Copyright (c) 2018-2020, The Masari Project
+ *     Copyright (c) 2014-2018, MyMonero.com
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+ *     All rights reserved.
+ *     Redistribution and use in source and binary forms, with or without modification,
+ *     are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ *     ==> Redistributions of source code must retain the above copyright notice,
+ *         this list of conditions and the following disclaimer.
+ *     ==> Redistributions in binary form must reproduce the above copyright notice,
+ *         this list of conditions and the following disclaimer in the documentation
+ *         and/or other materials provided with the distribution.
+ *     ==> Neither the name of Qwertycoin nor the names of its contributors
+ *         may be used to endorse or promote products derived from this software
+ *          without specific prior written permission.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *     "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *     LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *     A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ *     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ *     EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ *     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *     PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *     LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *     NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 import {Transaction, TransactionIn, TransactionOut} from "./Transaction";
@@ -19,6 +37,7 @@ import {MathUtil} from "./MathUtil";
 import {Cn, CnNativeBride, CnRandom, CnTransactions, CnUtils} from "./Cn";
 import {RawDaemon_Transaction} from "./blockchain/BlockchainExplorer";
 import hextobin = CnUtils.hextobin;
+import {Constants} from "./Constants";
 
 export const TX_EXTRA_PADDING_MAX_COUNT = 255;
 export const TX_EXTRA_NONCE_MAX_COUNT = 255;
@@ -43,7 +62,6 @@ type RawOutForTx = {
     public_key: string,
     index: number,
     global_index: number,
-    rct: string,
     tx_pub_key: string
 };
 
@@ -131,7 +149,6 @@ export class TransactionsExplorer {
 
     static parse(rawTransaction: RawDaemon_Transaction, wallet: Wallet): Transaction | null {
         let transaction: Transaction | null = null;
-
         let tx_pub_key = '';
         let paymentId: string | null = null;
 
@@ -218,45 +235,23 @@ export class TransactionsExplorer {
             let mine_output = (txout_k.key == generated_tx_pubkey);
 
             if (mine_output) {
-                /*
-                let minerTx = false;
 
-                if (amount !== 0) {
-                    //miner tx
-                    minerTx = true;
-                } else {
-                    let mask = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].mask;
-                    let r = CnTransactions.decode_ringct(rawTransaction.rct_signatures,
-                        tx_pub_key,
-                        wallet.keys.priv.view,
-                        output_idx_in_tx,
-                        mask,
-                        amount,
-                        derivation);
-
-                    if (r === false) {
-                        console.error("Cant decode ringCT!");
-                        continue;
-                    } else
-                        amount = r;
-                }
-*/
                 let transactionOut = new TransactionOut();
                 if (typeof rawTransaction.global_index_start !== 'undefined')
-                    transactionOut.globalIndex = rawTransaction.global_index_start + output_idx_in_tx;
+                    transactionOut.globalIndex = rawTransaction.output_indices[output_idx_in_tx];
                 else
                     transactionOut.globalIndex = output_idx_in_tx;
 
                 transactionOut.amount = amount;
                 transactionOut.pubKey = txout_k.key;
                 transactionOut.outputIdx = output_idx_in_tx;
-/*
-                if (!minerTx) {
-                    transactionOut.rtcOutPk = rawTransaction.rct_signatures.outPk[output_idx_in_tx];
-                    transactionOut.rtcMask = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].mask;
-                    transactionOut.rtcAmount = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].amount;
-                }
-*/
+                /*
+                                if (!minerTx) {
+                                    transactionOut.rtcOutPk = rawTransaction.rct_signatures.outPk[output_idx_in_tx];
+                                    transactionOut.rtcMask = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].mask;
+                                    transactionOut.rtcAmount = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].amount;
+                                }
+                */
                 if (wallet.keys.priv.spend !== null && wallet.keys.priv.spend !== '') {
                     let m_key_image = CnTransactions.generate_key_image_helper({
                         view_secret_key: wallet.keys.priv.view,
@@ -377,12 +372,16 @@ export class TransactionsExplorer {
         // {"height"          , tx.height},
         // {"spend_key_images", json::array()}
 
-        console.log(wallet.getAll());
         for (let tr of wallet.getAll()) {
             //todo improve to take into account miner tx
             //only add outs unlocked
             if (!tr.isConfirmed(blockchainHeight)) {
                 continue;
+            }
+
+            if (Constants.DEBUG_STATE) {
+                console.log(`tr:`)
+                console.log(tr)
             }
 
             for (let out of tr.outs) {
@@ -399,7 +398,6 @@ export class TransactionsExplorer {
                     public_key: out.pubKey,
                     index: out.outputIdx,
                     global_index: out.globalIndex,
-                    rct: rct,
                     tx_pub_key: tr.txPubKey,
                 });
             }
@@ -445,6 +443,14 @@ export class TransactionsExplorer {
                 }
 
                 let splittedDsts = CnTransactions.decompose_tx_destinations(dsts, rct);
+
+                if (Constants.DEBUG_STATE) {
+                    console.log(`decompose_tx_destinations now`)
+                    console.log(`splittedDsts: `)
+                    console.log(splittedDsts)
+                    console.log(`create_transaction now`)
+                }
+
                 signed = CnTransactions.create_transaction(
                     {
                         spend: wallet.keys.pub.spend,
@@ -459,7 +465,7 @@ export class TransactionsExplorer {
                     realDestViewKey, 0, rct);
 
                 console.log("signed tx: ", signed);
-                let raw_tx_and_hash = CnTransactions.serialize_rct_tx_with_hash(signed);
+                let raw_tx_and_hash = CnTransactions.serialize_tx_with_hash(signed);
                 resolve({raw: raw_tx_and_hash, signed: signed});
 
             } catch (e) {
@@ -489,6 +495,10 @@ export class TransactionsExplorer {
             let dsts: { address: string, amount: number }[] = [];
 
             for (let dest of userDestinations) {
+                if (Constants.DEBUG_STATE) {
+                    console.log(`Destination: `)
+                    console.log(dest)
+                }
                 totalAmountWithoutFee = totalAmountWithoutFee.add(dest.amount);
                 let target = Cn.decode_address(dest.address);
                 if (target.intPaymentId !== null) {

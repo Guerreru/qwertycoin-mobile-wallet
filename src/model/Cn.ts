@@ -1,20 +1,38 @@
-/*
- * Copyright (c) 2018, Gnock
- * Copyright (c) 2018, The Masari Project
- * Copyright (c) 2014-2018, MyMonero.com
+/**
+ *	   Copyright (c) 2018, Gnock
+ *     Copyright (c) 2018-2020, ExploShot
+ *     Copyright (c) 2018-2020, The Qwertycoin Project
+ *     Copyright (c) 2018-2020, The Masari Project
+ *     Copyright (c) 2014-2018, MyMonero.com
  *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+ *     All rights reserved.
+ *     Redistribution and use in source and binary forms, with or without modification,
+ *     are permitted provided that the following conditions are met:
  *
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ *     ==> Redistributions of source code must retain the above copyright notice,
+ *         this list of conditions and the following disclaimer.
+ *     ==> Redistributions in binary form must reproduce the above copyright notice,
+ *         this list of conditions and the following disclaimer in the documentation
+ *         and/or other materials provided with the distribution.
+ *     ==> Neither the name of Qwertycoin nor the names of its contributors
+ *         may be used to endorse or promote products derived from this software
+ *          without specific prior written permission.
  *
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *     "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *     LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *     A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ *     CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ *     EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ *     PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *     PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *     LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *     NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 import {Mnemonic} from "./Mnemonic";
+import {Constants} from "./Constants";
 
 declare let Module : any;
 
@@ -178,7 +196,7 @@ export namespace CnUtils{
 //for most uses you'll also want to swapEndian after conversion
 	//mainly to convert integer "scalars" to usable hexadecimal strings
 	export function d2h(integer : number|string){
-		if (typeof integer !== "string" && integer.toString().length > 15){throw "integer should be entered as a string for precision";}
+		if (typeof integer !== "string" && integer.toString().length > 15){throw "integer should be entered as a string for precision L199";}
 		let padding = "";
 		for (let i = 0; i < 63; i++){
 			padding += "0";
@@ -188,7 +206,12 @@ export namespace CnUtils{
 
 	//integer (string) to scalar
 	export function d2s(integer : number|string){
-		return CnUtils.swapEndian(CnUtils.d2h(integer));
+		if (typeof integer === "string") {
+			return CnUtils.swapEndian(CnUtils.d2h(integer));
+		} else {
+			return CnUtils.swapEndian(CnUtils.d2h(integer.toString()));
+		}
+
 	}
 
 	// hexadecimal to integer
@@ -213,7 +236,7 @@ export namespace CnUtils{
 
 	export function d2b(integer : number) : string{
 		let integerStr = integer.toString();
-		if (typeof integer !== "string" && integerStr.length > 15){throw "integer should be entered as a string for precision";}
+		if (typeof integer !== "string" && integerStr.length > 15){throw "integer should be entered as a string for precision L234";}
 		let padding = "";
 		for (let i = 0; i < 63; i++){
 			padding += "0";
@@ -344,26 +367,18 @@ export namespace CnUtils{
 	}
 
 	export function decompose_amount_into_digits(amount : number|string) {
-		let amountStr = amount.toString();
+		amount = amount.toString();
 		let ret = [];
-		while (amountStr.length > 0) {
-			//split all the way down since v2 fork
-			/*let remaining = new JSBigInt(amount);
-			 if (remaining.compare(config.dustThreshold) <= 0) {
-			 if (remaining.compare(0) > 0) {
-			 ret.push(remaining);
-			 }
-			 break;
-			 }*/
+		while (amount.length > 0) {
 			//check so we don't create 0s
-			if (amountStr[0] !== "0"){
-				let digit = amountStr[0];
-				while (digit.length < amountStr.length) {
+			if (amount[0] !== "0"){
+				let digit = amount[0];
+				while (digit.length < amount.length) {
 					digit += "0";
 				}
 				ret.push(new JSBigInt(digit));
 			}
-			amount = amountStr.slice(1);
+			amount = amount.slice(1);
 		}
 		return ret;
 	}
@@ -1077,7 +1092,7 @@ export namespace CnTransactions{
 	}
 
 	//TODO duplicate above
-	export function generate_key_image_helper_rct(keys : {view:{sec:string}, spend:{pub:string,sec:string}}, tx_pub_key : string, out_index : number, enc_mask : string) {
+	export function generate_key_image_helper_rct(keys : {view:{sec:string}, spend:{pub:string,sec:string}}, tx_pub_key : string, out_index : number, enc_mask : string | null) {
 		let recv_derivation = CnNativeBride.generate_key_derivation(tx_pub_key, keys.view.sec);
 		if (!recv_derivation) throw "Failed to generate key image";
 
@@ -1091,7 +1106,16 @@ export namespace CnTransactions{
 		else
 		{
 			// for other ringct types or for non-ringct txs to this.
-			mask = enc_mask ? CnNativeBride.sc_sub(enc_mask, Cn.hash_to_scalar(CnUtils.derivation_to_scalar(recv_derivation, out_index))) : CnVars.I; //decode mask, or d2s(1) if no mask
+			let temp0 = CnUtils.derivation_to_scalar(recv_derivation, out_index);
+			let temp1 = Cn.hash_to_scalar(temp0);
+			if (Constants.DEBUG_STATE) {
+				console.log(`enc_mask`);
+				console.log(enc_mask);
+				console.log(`temp0 ${temp0}, length: ${temp0.length}`);
+				console.log(`temp0 ${temp1}, length: ${temp1.length}`);
+			}
+
+			mask = enc_mask ? CnNativeBride.sc_sub(enc_mask, temp1) : CnVars.I; //decode mask, or d2s(1) if no mask
 		}
 
 		let ephemeral_pub = CnNativeBride.derive_public_key(recv_derivation, out_index, keys.spend.pub);
@@ -1128,6 +1152,10 @@ export namespace CnTransactions{
 			}
 		} else {
 			for (let i = 0; i < dsts.length; i++) {
+				if (Constants.DEBUG_STATE) {
+					console.log(`decompose destination: `)
+					console.log(dsts[i])
+				}
 				let digits = CnUtils.decompose_amount_into_digits(dsts[i].amount);
 				for (let j = 0; j < digits.length; j++) {
 					if (digits[j].compare(0) > 0) {
@@ -1388,6 +1416,18 @@ export namespace CnTransactions{
 		return buf;
 	}
 
+	export function serialize_tx_with_hash (tx : CnTransactions.Transaction) {
+		var hashes = "";
+		var buf = "";
+		buf += CnTransactions.serialize_tx(tx, false);
+		hashes += CnUtils.cn_fast_hash(buf);
+
+		return {
+			raw: buf,
+			hash: hashes,
+			prvkey: tx.prvkey
+		};
+	};
 
 	export function serialize_rct_tx_with_hash(tx : CnTransactions.Transaction) {
 		let hashes = "";
@@ -1817,6 +1857,8 @@ export namespace CnTransactions{
 				console.log("Time take for range proof " + i + ": " + testfinish);
 				rv.outPk[i] = cmObj.C;
 				sumout = CnNativeBride.sc_add(sumout, cmObj.mask);
+				console.log(`genRct: ${typeof outAmounts[i]}`)
+				console.log(outAmounts[i]);
 				rv.ecdhInfo[i] = CnUtils.encode_rct_ecdh({mask: cmObj.mask, amount: CnUtils.d2s(outAmounts[i])}, amountKeys[i]);
 			}
 			console.log('====a');
@@ -1908,6 +1950,13 @@ export namespace CnTransactions{
 			},
 			signatures:[]
 		};
+
+		if (rct) {
+			tx.rct_signatures = {ecdhInfo: [], outPk: [], pseudoOuts: [], txnFee: "", type: 0};
+		} else {
+			tx.signatures = [];
+		}
+
 		tx.prvkey = txkey.sec;
 
 		let in_contexts = [];
@@ -1926,7 +1975,7 @@ export namespace CnTransactions{
 
 			// sets res.mask among other things. mask is identity for non-rct transactions
 			// and for coinbase ringct (type = 0) txs.
-			let res = CnTransactions.generate_key_image_helper_rct(keys, sources[i].real_out_tx_key, sources[i].real_out_in_tx, ''+sources[i].mask); //mask will be undefined for non-rct
+			let res = CnTransactions.generate_key_image_helper_rct(keys, sources[i].real_out_tx_key, sources[i].real_out_in_tx, sources[i].mask); //mask will be undefined for non-rct
 			// in_contexts.push(res.in_ephemeral);
 
 			// now we mark if this is ringct coinbase txs. such transactions
@@ -2121,12 +2170,10 @@ export namespace CnTransactions{
 										   public_key:string,
 										   index:number,
 										   global_index:number,
-										   rct:string,
 										   tx_pub_key:string,
 									   }[],
 									   mix_outs:{
 										   outputs:{
-											   rct: string,
 											   public_key:string,
 											   global_index:number
 										   }[],
@@ -2218,14 +2265,17 @@ export namespace CnTransactions{
 						key:out.public_key,
 						commit:''
 					};
+					/*
 					if (rct){
 						if (out.rct){
 							oe.commit = out.rct.slice(0,64); //add commitment from rct mix outs
 						} else {
-							if (outputs[i].rct) {throw "mix rct outs missing commit";}
+							if (outputs[i]['rct']) {throw "mix rct outs missing commit";}
 							oe.commit = zeroCommit(CnUtils.d2s(src.amount)); //create identity-masked commitment for non-rct mix input
 						}
 					}
+
+					 */
 					src.outputs.push(oe);
 					j++;
 				}
@@ -2236,6 +2286,7 @@ export namespace CnTransactions{
 				commit:'',
 			};
 			console.log('OUT FOR REAL:',outputs[i].global_index);
+			/*
 			if (rct){
 				if (outputs[i].rct) {
 					real_oe.commit = outputs[i].rct.slice(0,64); //add commitment for real input
@@ -2244,6 +2295,8 @@ export namespace CnTransactions{
 					real_oe.commit = zeroCommit(CnUtils.d2s(src.amount)); //create identity-masked commitment for non-rct input
 				}
 			}
+
+			 */
 			let real_index = src.outputs.length;
 			for (j = 0; j < src.outputs.length; j++) {
 				if (new JSBigInt(real_oe.index).compare(src.outputs[j].index) < 0) {
@@ -2259,6 +2312,7 @@ export namespace CnTransactions{
 			src.real_out = real_index;
 			src.real_out_in_tx = outputs[i].index;
 			console.log('check mask', outputs, rct, i);
+			/*
 			if (rct){
 				if (outputs[i].rct) {
 					src.mask = outputs[i].rct.slice(64,128); //encrypted or idenity mask for coinbase txs.
@@ -2267,6 +2321,8 @@ export namespace CnTransactions{
 					src.mask = null; //will be set by generate_key_image_helper_rct
 				}
 			}
+
+			 */
 			sources.push(src);
 		}
 		console.log('sources: ', sources);

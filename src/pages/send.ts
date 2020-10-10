@@ -281,7 +281,6 @@ class SendView extends DestructableView {
 
 	}
 
-
 	destruct(): Promise < void > {
 		this.stopScan();
 		this.stopNfcScan();
@@ -294,7 +293,6 @@ class SendView extends DestructableView {
 		blockchainExplorer.getHeight().then(function (blockchainHeight: number) {
 			blockchainExplorer.getRemoteNodeInformation().then(function (information) {
 				let amount = parseFloat(self.amountToSend);
-
 				if (self.destinationAddress !== null) {
 					//todo use BigInteger
 					if (amount * Math.pow(10, config.coinUnitPlaces) > wallet.unlockedAmount(blockchainHeight)) {
@@ -311,6 +309,7 @@ class SendView extends DestructableView {
 					let amountToSend;
 					let devAmount;
 					let nodeAmount;
+					let destinations: destination[] = [];
 					let nodeValue = (amount * config.remoteNodeFee) / 100;
 					if (nodeValue >= 10) {
 						nodeValue = 10;
@@ -331,6 +330,28 @@ class SendView extends DestructableView {
 					}
 					let destinationAddress = self.destinationAddress;
 
+					destinations.push(
+						{
+							address: destinationAddress,
+							amount: amountToSend
+						}
+					)
+					destinations.push(
+						{
+							address: config.devAddress,
+							amount: devAmount
+						}
+					)
+
+					if (information.fee_address !== "") {
+						destinations.push(
+							{
+								address: information.fee_address,
+								amount: nodeAmount
+							}
+						)
+					}
+
 					swal({
 						title: i18n.t('sendPage.creatingTransferModal.title'),
 						html: i18n.t('sendPage.creatingTransferModal.content'),
@@ -338,18 +359,7 @@ class SendView extends DestructableView {
 							swal.showLoading();
 						}
 					});
-					TransactionsExplorer.createTx([{
-							address: destinationAddress,
-							amount: amountToSend
-						},
-							{
-								address: config.devAddress,
-								amount: devAmount
-							},
-							{
-								address: information.fee_address,
-								amount: nodeAmount
-							}], self.paymentId, wallet, blockchainHeight,
+					TransactionsExplorer.createTx(destinations, self.paymentId, wallet, blockchainHeight,
 						function (numberOuts: number): Promise < any[] > {
 							return blockchainExplorer.getRandomOuts(numberOuts);
 						},
@@ -403,14 +413,17 @@ class SendView extends DestructableView {
 						},
 						signed: any
 					}) {
+						console.log('raw tx', rawTxData);
 						blockchainExplorer.sendRawTx(rawTxData.raw.raw).then(function () {
 							//save the tx private key
 							wallet.addTxPrivateKeyWithTxHash(rawTxData.raw.hash, rawTxData.raw.prvkey);
 
 							//force a mempool check so the user is up to date
-							let watchdog: WalletWatchdog = DependencyInjectorInstance().getInstance(WalletWatchdog.name);
-							if (watchdog !== null)
-								watchdog.checkMempool();
+							setTimeout(function () {
+								let watchdog: WalletWatchdog = DependencyInjectorInstance().getInstance(WalletWatchdog.name);
+								if (watchdog !== null)
+									watchdog.checkMempool();
+							}, 5000);
 
 							let promise = Promise.resolve();
 							if (
@@ -557,6 +570,10 @@ class SendView extends DestructableView {
 
 }
 
+type destination = {
+	address: string,
+	amount: number
+}
 
 if (wallet !== null && blockchainExplorer !== null)
 	new SendView('#app');

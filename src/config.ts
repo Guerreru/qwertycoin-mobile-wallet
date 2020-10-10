@@ -1,20 +1,17 @@
 let global: any = typeof window !== 'undefined' ? window : self;
 global.config = {
-	apiUrl: [
-		"https://01-cache.myqwertycoin.com/"
-	],
 	nodeList: [
-		"http://148.251.115.233:8197/",
-		"http://148.251.115.235:8197/"
+		"https://pr01.myqwertycoin.com/sync/",
+		"https://pr02.myqwertycoin.com/sync/"
 	],
 	electionApiUrl: "https://voting.qwertycoin.org/api",
 	websiteApiUrl: "https://www.qwertycoin.org/wp-json",
 	mainnetExplorerUrl: "https://explorer.qwertycoin.org/",
 	mainnetExplorerUrlHash: "https://explorer.qwertycoin.org/?hash={ID}#blockchain_transaction",
 	mainnetExplorerUrlBlock: "https://explorer.qwertycoin.org/?hash={ID}#blockchain_block",
-	testnetExplorerUrl: "https://testnet.qwertycoin.org/",
-	testnetExplorerUrlHash: "https://testnet.qwertycoin.org/?hash={ID}#blockchain_transaction",
-	testnetExplorerUrlBlock: "https://testnet.qwertycoin.org/?hash={ID}#blockchain_block",
+	testnetExplorerUrl: "https://explorer.testnet.qwertycoin.org/",
+	testnetExplorerUrlHash: "https://explorer.testnet.qwertycoin.org/?hash={ID}#blockchain_transaction",
+	testnetExplorerUrlBlock: "https://explorer.testnet.qwertycoin.org/?hash={ID}#blockchain_block",
 	testnet: false,
 	coinUnitPlaces: 8,
 	coinDisplayUnitPlaces: 2,
@@ -42,5 +39,5 @@ global.config = {
 	maxBlockNumber: 500000000,
 	remoteNodeFee: 0.25,
 	devFee: 1,
-	devAddress: "QWC1FfPzWYY5aNiPwGSKQJfHz5o5ehsyeEQgCT3tb46nEnUvnw3Dz4NbNSVY5bNvAVTRuHygmcU4hU8ab2SXBigzAFjpVpK9Ky"
+	devAddress: "QWC1Dx9NNGkHCkgRgeF9fhEskhg5ddiDJGVXdGBwqW7CXqKHZe6gzxuhLzWZwBVTbeAofBPe6mSkeedRuFuxRwunAG7KBLYTgB"
 };
