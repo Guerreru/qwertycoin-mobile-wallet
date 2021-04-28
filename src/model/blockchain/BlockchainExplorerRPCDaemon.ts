@@ -18,6 +18,7 @@ import {Wallet} from "../Wallet";
 import {MathUtil} from "../MathUtil";
 import {CnTransactions, CnUtils} from "../Cn";
 import {WalletWatchdog} from "../WalletWatchdog";
+import {Server} from "../Server";
 
 export type DaemonResponseGetInfo = {
     "alt_blocks_count": number,
@@ -52,17 +53,30 @@ export type DaemonResponseGetInfo = {
 }
 
 export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
-    daemonAddress = config.nodeList[Math.floor(Math.random() * Math.floor(config.nodeList.length))];
+    daemonAddress = config.nodeUrl;
     phpProxy: boolean = false;
+    intervalRefreshDaemon: number = 0;
 
-    constructor(daemonAddress: string | null = null) {
-        if (daemonAddress !== null && daemonAddress.trim() !== '') {
-            this.daemonAddress = daemonAddress;
+    constructor() {
+        let self: any = this;
+
+        if (this.intervalRefreshDaemon === 0) {
+            this.intervalRefreshDaemon = setInterval(function () {
+                Server.getCurrentServer().then((server: string) =>  {
+                    if (server !== null) {
+                        self.daemonAddress = server;
+                        console.log(`Server: ${self.daemonAddress}`);
+                    } else {
+                        self.daemonAddress = config.nodeUrl;
+                    }
+                });
+            }, 5 * 1000);
         }
     }
 
     protected makeRpcRequest(method: string, params: any = {}): Promise<any> {
         return new Promise<any>((resolve, reject) => {
+            console.log(`makeRpcRequest Server: ${this.daemonAddress}`);
             $.ajax({
                 url: this.daemonAddress + 'json_rpc' + (this.phpProxy ? '.php' : ''),
                 method: 'POST',
@@ -79,10 +93,11 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
                     typeof raw.jsonrpc === 'undefined' ||
                     raw.jsonrpc !== '2.0' ||
                     typeof raw.result !== 'object'
-                )
+                ) {
                     reject('Daemon response is not properly formatted');
-                else
+                } else {
                     resolve(raw.result);
+                }
             }).fail(function (data: any) {
                 reject(data);
             });
@@ -91,6 +106,7 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
 
     protected makeRequest(method: 'GET' | 'POST', url: string, body: any = undefined): Promise<any> {
         return new Promise<any>((resolve, reject) => {
+            console.log(`makeRequest Server: ${this.daemonAddress + url}`);
             $.ajax({
                 url: this.daemonAddress + url + (this.phpProxy ? '.php' : ''),
                 method: method,
@@ -115,6 +131,7 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
         return this.makeRequest('GET', 'getinfo').then((data: DaemonResponseGetInfo) => {
             this.cacheInfo = data;
             console.log(`GetInfo: `)
+
             return data;
         })
     }
@@ -157,42 +174,47 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
             tempStartBlock = startBlock;
         }
 
-        return this.makeRequest('POST', 'get_transactions_by_heights', {
+        return this.makeRequest('POST', 'get_raw_transactions_by_heights', {
             heights: [tempStartBlock, endBlock],
-            include_miner_txs: false,
-            as_json: true,
-            as_hex: false,
+            includeMinerTxs: true,
             range: true
         }).then((answer: {
             status: 'OK' | 'string',
-            txs: { as_hex: string, as_json: any, block_height: number, block_timestamp: number, output_indices: number[], tx_hash: string }[]
+            transactions: { transaction: any, timestamp: number, output_indexes: number[], height: number, block_hash: string, hash: string, fee: number }[]
         }) => {
             let formatted: RawDaemon_Transaction[] = [];
 
-            if (answer.status !== 'OK') throw 'invalid_transaction_answer';
+            if (answer.status !== 'OK') {
+                throw 'invalid_transaction_answer';
+            }
 
-            if (answer.txs.length > 0) {
-                for (let rawTx of answer.txs) {
+            if (answer.transactions.length > 0) {
+                for (let rawTx of answer.transactions) {
                     let tx: RawDaemon_Transaction | null = null;
                     try {
-                        tx = rawTx.as_json;
+                        tx = rawTx.transaction;
                     } catch (e) {
                         try {
                             //compat for some invalid endpoints
-                            tx = rawTx.as_json;
+                            tx = rawTx.transaction;
                         } catch (e) {
                         }
                     }
                     if (tx !== null) {
-                        tx.ts = rawTx.block_timestamp;
-                        tx.height = rawTx.block_height;
-                        tx.hash = rawTx.tx_hash;
-                        if (rawTx.output_indices.length > 0)
-                            tx.global_index_start = rawTx.output_indices[0];
-                        tx.output_indices = rawTx.output_indices;
+                        tx.ts = rawTx.timestamp;
+                        tx.height = rawTx.height;
+                        tx.hash = rawTx.hash;
+                        if (rawTx.output_indexes.length > 0) {
+                            tx.global_index_start = rawTx.output_indexes[0];
+                        }
+                        tx.output_indexes = rawTx.output_indexes;
 
                         formatted.push(tx);
                     }
+                }
+
+                if (answer.status === 'OK') {
+                    // console.log(formatted);
                 }
 
                 return formatted;
@@ -203,18 +225,46 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
     }
 
     getTransactionPool(): Promise<RawDaemon_Transaction[]> {
-        return this.makeRequest('GET', 'api/mempool_detailed/').then(
-            (rawTransactions: {
-                tx_json: string
-            }[]) => {
+        return this.makeRequest('GET', 'get_raw_transactions_from_pool').then(
+            (response: {
+                status: 'OK' | 'string',
+                transactions: {
+                    transaction: any,
+                    timestamp: number,
+                    output_indexes: number[],
+                    height: number,
+                    block_hash: string,
+                    hash: string,
+                    fee: number
+                }[]
+            }) => {
                 let formatted: RawDaemon_Transaction[] = [];
-                for (let rawTransaction of rawTransactions) {
+                for (let rawTransaction of response.transactions) {
+                    let tx: RawDaemon_Transaction | null = null;
                     try {
-                        formatted.push(JSON.parse(rawTransaction.tx_json));
+                        tx = rawTransaction.transaction;
                     } catch (e) {
+                        try {
+                            tx = rawTransaction.transaction;
+                        } catch (e) {
+
+                        }
                         console.error(e);
                     }
+
+                    if (tx !== null) {
+                        tx.ts = rawTransaction.timestamp;
+                        tx.height = rawTransaction.height;
+                        tx.hash = rawTransaction.hash;
+                        if (rawTransaction.output_indexes.length > 0) {
+                            tx.global_index_start = rawTransaction.output_indexes[0];
+                            tx.output_indexes = rawTransaction.output_indexes;
+                        }
+
+                        formatted.push(tx);
+                    }
                 }
+
                 return formatted;
             });
     }
@@ -248,16 +298,16 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
                 } while (selectedIndex === -1 || randomBlocksIndexesToGet.indexOf(selectedIndex) !== -1);
                 randomBlocksIndexesToGet.push(selectedIndex);
 
-                compressedBlocksToGet[Math.floor(selectedIndex / 100) * 100] = true;
+                compressedBlocksToGet[Math.floor(selectedIndex / 50) * 50] = true;
             }
 
             console.log('Random blocks required: ', randomBlocksIndexesToGet);
             console.log('Blocks to get for outputs selections:', compressedBlocksToGet);
 
-            //load compressed blocks (100 blocks) containing the blocks referred by their index
+            //load compressed blocks (50 blocks) containing the blocks referred by their index
             for (let compressedBlock in compressedBlocksToGet) {
                 promiseGetCompressedBlocks = promiseGetCompressedBlocks.then(() => {
-                    return self.getTransactionsForBlocks(parseInt(compressedBlock), Math.min(parseInt(compressedBlock) + 99, height - config.txCoinbaseMinConfirms)).then(function (rawTransactions: RawDaemon_Transaction[]) {
+                    return self.getTransactionsForBlocks(parseInt(compressedBlock), Math.min(parseInt(compressedBlock) + 49, height - config.txCoinbaseMinConfirms)).then(function (rawTransactions: RawDaemon_Transaction[]) {
                         txs.push.apply(txs, rawTransactions);
                     });
                 });
@@ -279,8 +329,8 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
                     for (let output_idx_in_tx = 0; output_idx_in_tx < tx.vout.length; ++output_idx_in_tx) {
                         let rct = null;
                         let globalIndex: number = 0;
-                        if (typeof tx.global_index_start !== 'undefined' && typeof tx.output_indices !== 'undefined') {
-                            globalIndex = tx.output_indices[output_idx_in_tx];
+                        if (typeof tx.global_index_start !== 'undefined' && typeof tx.output_indexes !== 'undefined') {
+                            globalIndex = tx.output_indexes[output_idx_in_tx];
                         }
 
                         if (tx.vout[output_idx_in_tx].amount !== 0) {//check if miner tx
@@ -364,5 +414,4 @@ export class BlockchainExplorerRpcDaemon implements BlockchainExplorer {
             }
         });
     }
-
 }

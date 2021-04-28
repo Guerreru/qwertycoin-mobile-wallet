@@ -4,6 +4,7 @@
 node_modules
 platforms
 plugins
+output
 www/
 _www/
 package-lock.json

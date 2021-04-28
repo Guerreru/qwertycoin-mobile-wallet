@@ -56,9 +56,11 @@ class AccountView extends DestructableView {
 		setTimeout(function () {
 			self.refresh();
 		}, 50);
+
 		this.intervalRefresh = setInterval(function () {
 			self.refresh();
-		}, 10 * 1000);
+		}, 1000);
+
 		this.intervalPrice = setInterval(function () {
 			self.refreshPrice();
 		}, 60 * 1000);

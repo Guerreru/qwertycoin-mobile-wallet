@@ -18,6 +18,13 @@ export class WalletWatchdog {
 
     initWorker() {
         let self = this;
+        if (this.wallet.options.customNode) {
+            config.nodeUrl = this.wallet.options.nodeUrl;
+        } else {
+            let randInt = Math.floor(Math.random() * Math.floor(config.nodeList.length));
+            config.nodeUrl = config.nodeList[randInt].node;
+        }
+
         this.workerProcessing = new Worker('./workers/TransferProcessingEntrypoint.js');
         this.workerProcessing.onmessage = function (data: MessageEvent) {
             let message: string | any = data.data;
@@ -150,9 +157,11 @@ export class WalletWatchdog {
             return;
         }
 
+        console.log(`checkTransactionsInterval`);
+        console.log(`workerCountProcessed: ${this.workerCountProcessed}`);
         //we destroy the worker in charge of decoding the transactions every 5k transactions to ensure the memory is not corrupted
         //cnUtil bug, see https://github.com/mymonero/mymonero-core-js/issues/8
-        if (this.workerCountProcessed >= 5 * 1000) {
+        if (this.workerCountProcessed >= 1000) {
             console.log('Recreate worker..');
             this.terminateWorker();
             this.initWorker();
@@ -160,6 +169,7 @@ export class WalletWatchdog {
         }
 
         let transactionsToProcess: RawDaemon_Transaction[] = this.transactionsToProcess.splice(0, 30);
+        console.log(`transactionsToProcess: ${transactionsToProcess.length}`);
         if (transactionsToProcess.length > 0) {
             this.workerCurrentProcessing = transactionsToProcess;
             this.workerProcessing.postMessage({
@@ -167,6 +177,7 @@ export class WalletWatchdog {
                 transactions: transactionsToProcess
             });
             this.workerCountProcessed += this.transactionsToProcess.length;
+            console.log(`workerCountProcessed: ${this.workerCountProcessed}`);
             this.workerProcessingWorking = true;
         } else {
             clearInterval(this.intervalTransactionsProcess);
@@ -175,6 +186,7 @@ export class WalletWatchdog {
     }
 
     processTransactions(transactions: RawDaemon_Transaction[]) {
+        console.log(`processTransactions: ${transactions.length}`);
         let transactionsToAdd = [];
         for (let tr of transactions) {
             if (typeof tr.height !== 'undefined')
@@ -183,8 +195,12 @@ export class WalletWatchdog {
                 }
         }
 
+        console.log(`transactionsToAdd: `);
+        console.log(transactionsToAdd);
+
         this.transactionsToProcess.push.apply(this.transactionsToProcess, transactionsToAdd);
         if (this.intervalTransactionsProcess === 0) {
+            console.log(`intervalTransactionsProcess: ${this.intervalTransactionsProcess}`);
             let self = this;
             this.intervalTransactionsProcess = setInterval(function () {
                 self.checkTransactionsInterval();
@@ -225,12 +241,14 @@ export class WalletWatchdog {
                 self.explorer.getTransactionsForBlocks(previousStartBlock, endBlock, true).then(function (transactions: any) {
                     //to ensure no pile explosion
                     if (transactions === 'OK') {
+                        console.log(`transactions === ok`);
                         self.lastBlockLoading += 1;
                         self.wallet.lastHeight += 1;
                         setTimeout(function () {
                             self.loadHistory();
                         }, 1);
                     } else if (transactions.length > 0) {
+                        console.log(`transactions.length > 0`);
                         let lastTx = transactions[transactions.length - 1];
                         if (typeof lastTx.height !== 'undefined') {
                             self.lastBlockLoading = lastTx.height + 1;
@@ -239,27 +257,25 @@ export class WalletWatchdog {
                         setTimeout(function () {
                             self.loadHistory();
                         }, 1);
-                    } else  {
+                    } else {
                         setTimeout(function () {
                             self.loadHistory();
-                        }, 30 * 1000);
+                        }, 10 * 1000);
                     }
                 }).catch(function () {
                     setTimeout(function () {
                         self.loadHistory();
-                    }, 30 * 1000);//retry 30s later if an error occurred
+                    }, 10 * 1000);//retry 30s later if an error occurred
                 });
             } else {
                 setTimeout(function () {
                     self.loadHistory();
-                }, 30 * 1000);
+                }, 10 * 1000);
             }
         }).catch(function () {
             setTimeout(function () {
                 self.loadHistory();
-            }, 30 * 1000);//retry 30s later if an error occurred
+            }, 10 * 1000);//retry 30s later if an error occurred
         });
     }
-
-
 }

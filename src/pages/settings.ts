@@ -27,15 +27,20 @@ import {BlockchainExplorerProvider} from "../providers/BlockchainExplorerProvide
 import {Currency} from "../model/Currency";
 import {BlockchainExplorer} from "../model/blockchain/BlockchainExplorer";
 import {WalletWatchdog} from "../model/WalletWatchdog";
+import {Server} from "../model/Server";
 
 let wallet: Wallet = DependencyInjectorInstance().getInstance(Wallet.name, 'default', false);
 let blockchainExplorer: BlockchainExplorer = BlockchainExplorerProvider.getInstance();
 let walletWatchdog: WalletWatchdog = DependencyInjectorInstance().getInstance(WalletWatchdog.name, 'default', false);
 
-class SendView extends DestructableView {
+class SettingsView extends DestructableView {
 	@VueVar(10) readSpeed!: number;
 	@VueVar(false) checkMinerTx!: boolean;
 	@VueVar(false) notifications!: boolean;
+
+	@VueVar(false) customNode !: boolean;
+	@VueVar('https://pr02.myqwertycoin.com/sync/') nodeUrl !: string;
+	@VueVar([]) nodeList !: any;
 
 	@VueVar(0) creationHeight!: number;
 	@VueVar(0) scanHeight!: number;
@@ -56,6 +61,10 @@ class SendView extends DestructableView {
 		this.readSpeed = wallet.options.readSpeed;
 		this.checkMinerTx = wallet.options.checkMinerTx;
 
+		this.customNode = wallet.options.customNode;
+		this.nodeUrl = wallet.options.nodeUrl;
+		this.nodeList = config.nodeList;
+
 		this.creationHeight = wallet.creationHeight;
 		this.scanHeight = wallet.lastHeight;
 
@@ -69,6 +78,14 @@ class SendView extends DestructableView {
 
 		Currency.getCurrency().then((currency: string) => {
 			this.countrycurrency = currency;
+		});
+
+		Server.getIsCustomNodeEnabled().then((isCustomNode: boolean) => {
+			this.customNode = isCustomNode;
+		});
+
+		Server.getCurrentServer().then((server: string) => {
+			this.nodeUrl = server;
 		});
 
 		if (typeof ( < any > window).cordova !== 'undefined' && typeof ( < any > window).cordova.getAppVersion !== 'undefined') {
@@ -116,6 +133,7 @@ class SendView extends DestructableView {
 	@VueWatched() readSpeedWatch() {
 		this.updateWalletOptions();
 	}
+
 	@VueWatched() checkMinerTxWatch() {
 		this.updateWalletOptions();
 	}
@@ -128,17 +146,30 @@ class SendView extends DestructableView {
 		if (this.scanHeight > this.maxHeight && this.maxHeight !== -1) this.scanHeight = this.maxHeight;
 	}
 
-	private updateWalletOptions() {
+	updateConnectionSettings() {
 		let options = wallet.options;
-		options.readSpeed = this.readSpeed;
-		options.checkMinerTx = this.checkMinerTx;
+
+		console.log(`this.customNode = ${this.customNode}`);
+
+		if (this.customNode) {
+			Server.setIsCustomNodeEnabled(this.customNode);
+			Server.setCurrentServer(this.nodeUrl);
+			options.customNode = this.customNode;
+			options.nodeUrl = this.nodeUrl;
+		}
+
 		wallet.options = options;
 		walletWatchdog.signalWalletUpdate();
 	}
 
-	updateWalletSettings() {
-		wallet.creationHeight = this.creationHeight;
-		wallet.lastHeight = this.scanHeight;
+	private updateWalletOptions() {
+		let options = wallet.options;
+		options.readSpeed = this.readSpeed;
+		options.checkMinerTx = this.checkMinerTx;
+		options.customNode = this.customNode;
+		options.nodeUrl = this.nodeUrl;
+
+		wallet.options = options;
 		walletWatchdog.signalWalletUpdate();
 	}
 
@@ -156,6 +187,6 @@ class SendView extends DestructableView {
 }
 
 if (wallet !== null && blockchainExplorer !== null)
-	new SendView('#app');
+	new SettingsView('#app');
 else
 	window.location.href = '#index';

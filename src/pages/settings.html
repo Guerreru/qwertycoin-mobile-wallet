@@ -66,6 +66,29 @@
 		<div class="panel">
 			<div class="body">
 				<div class="content">
+					<div class="field checkbox toggle">
+						<input type="checkbox" name="customNode" v-model="customNode" />
+						<label>{{ $t("settingsPage.settingsBlock.customNode.label") }}</label>
+					</div>
+					<div class="field" v-if="customNode">
+						<label>{{ $t("settingsPage.settingsBlock.nodeUrl.label") }}</label>
+						<select type="url" v-model="nodeUrl">
+							<option value="" default selected disabled>{{ $t("settingsPage.settingsBlock.chooseNode") }}</option>
+							<option v-for="node of nodeList" v-bind:value="node.node" >{{ node.owner }}</option>
+						</select>
+					</div>
+					<div class="actions tc" v-if="customNode">
+						<button @click="updateConnectionSettings()" class="btn">
+							{{ $t("settingsPage.walletSettings.updateButton") }}
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel">
+			<div class="body">
+				<div class="content">
 					<div class="field">
 						<label>{{ $t("settingsPage.settingsBlock.speed.label") }}</label>
 						<select v-model="readSpeed">
@@ -84,15 +107,11 @@
 				<div class="content">
 					<div class="field">
 						<label>{{ $t("settingsPage.walletSettings.creationHeight.label") }}</label>
-						<input type="number" v-model="creationHeight" />
+						<input type="number" v-model="creationHeight" disabled/>
 					</div>
 					<div class="field">
 						<label>{{ $t("settingsPage.walletSettings.currentScanningHeight.label") }}</label>
-						<input type="number" v-model="scanHeight" />
-					</div>
-					<div class="actions tc">
-						<button @click="updateWalletSettings()"
-							class="btn">{{ $t("settingsPage.walletSettings.updateButton") }}</button>
+						<input type="number" v-model="scanHeight" disabled/>
 					</div>
 				</div>
 			</div>

@@ -1,9 +1,11 @@
 let global: any = typeof window !== 'undefined' ? window : self;
 global.config = {
 	nodeList: [
-		"https://pr01.myqwertycoin.com/sync/",
-		"https://pr02.myqwertycoin.com/sync/"
+		{ owner: "Lomelicus", node: "https://pr01.myqwertycoin.com/sync/"},
+		{ owner: "ExploShot", node: "https://pr02.myqwertycoin.com/sync/"},
+		{ owner: "रुकिए", node: "http://124.71.193.17:8197/"}
 	],
+	nodeUrl: "https://pr02.myqwertycoin.com/sync/",
 	electionApiUrl: "https://voting.qwertycoin.org/api",
 	websiteApiUrl: "https://www.qwertycoin.org/wp-json",
 	mainnetExplorerUrl: "https://explorer.qwertycoin.org/",

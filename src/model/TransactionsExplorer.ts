@@ -238,20 +238,14 @@ export class TransactionsExplorer {
 
                 let transactionOut = new TransactionOut();
                 if (typeof rawTransaction.global_index_start !== 'undefined')
-                    transactionOut.globalIndex = rawTransaction.output_indices[output_idx_in_tx];
+                    transactionOut.globalIndex = rawTransaction.output_indexes[output_idx_in_tx];
                 else
                     transactionOut.globalIndex = output_idx_in_tx;
 
                 transactionOut.amount = amount;
                 transactionOut.pubKey = txout_k.key;
                 transactionOut.outputIdx = output_idx_in_tx;
-                /*
-                                if (!minerTx) {
-                                    transactionOut.rtcOutPk = rawTransaction.rct_signatures.outPk[output_idx_in_tx];
-                                    transactionOut.rtcMask = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].mask;
-                                    transactionOut.rtcAmount = rawTransaction.rct_signatures.ecdhInfo[output_idx_in_tx].amount;
-                                }
-                */
+
                 if (wallet.keys.priv.spend !== null && wallet.keys.priv.spend !== '') {
                     let m_key_image = CnTransactions.generate_key_image_helper({
                         view_secret_key: wallet.keys.priv.view,
